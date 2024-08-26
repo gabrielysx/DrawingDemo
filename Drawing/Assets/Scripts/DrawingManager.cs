@@ -8,13 +8,18 @@ using System;
 
 public class DrawingManager : MonoBehaviour
 {
+    [SerializeField] float minCanvasScale = 0.75f;
+    [SerializeField] float maxCanvasScale = 1.25f;
+    [SerializeField] float canvasScaleStep = 0.1f;
+    private float currentCanvasScale = 1f;
+
     [SerializeField] float RDPThreshold = 0.01f;
     [SerializeField] float refineTolerance = 0.1f;
-    private List<UnityEngine.Vector2> userInput = new List<UnityEngine.Vector2>();
+    private List<LinePoint> userInput = new List<LinePoint>();
 
     private bool isDrawing = false;
 
-    [SerializeField] RectTransform lineDrawingCanvas;
+    [SerializeField] Transform linesHolder;
     [SerializeField] GameObject linePrefab;
     private List<GameObject> lines = new List<GameObject>();
     int curLineIndex = -1;
@@ -27,7 +32,7 @@ public class DrawingManager : MonoBehaviour
     int prevPointCount = 0;
 
     [SerializeField] bool isDebug = false;
-    [SerializeField]private List<UnityEngine.Vector2> pointsDebug = new List<UnityEngine.Vector2>();
+    [SerializeField] private List<LinePoint> pointsDebug = new List<LinePoint>();
     private void OnDrawGizmosSelected()
     {
         if(!isDebug) return;
@@ -36,11 +41,11 @@ public class DrawingManager : MonoBehaviour
         {
             for (int i = 0; i < pointsDebug.Count; i++)
             {
-                UnityEngine.Vector2 tempPoint = pointsDebug[i];
-                Gizmos.DrawWireSphere(tempPoint, 1f);
+                UnityEngine.Vector2 tempPoint = pointsDebug[i].position;
+                Gizmos.DrawWireSphere(tempPoint, 0.02f);
                 if (i != pointsDebug.Count - 1)
                 {
-                    Gizmos.DrawLine(tempPoint, pointsDebug[i + 1]);
+                    Gizmos.DrawLine(tempPoint, pointsDebug[i + 1].position);
                 }
             }
         }
@@ -48,12 +53,20 @@ public class DrawingManager : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetAxis("Mouse ScrollWheel") != 0)
+        {
+            float val = currentCanvasScale + Input.GetAxis("Mouse ScrollWheel") * canvasScaleStep;
+            val = Mathf.Clamp(val, minCanvasScale, maxCanvasScale);
+            linesHolder.localScale = new UnityEngine.Vector3(val, val, 1);
+            currentCanvasScale = val;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             isDrawing = true;
             curTotalDrawingTime = 0;
             //draw new line
-            GameObject newLine = Instantiate(linePrefab, lineDrawingCanvas.position, UnityEngine.Quaternion.identity, lineDrawingCanvas);
+            GameObject newLine = Instantiate(linePrefab, linesHolder.position, UnityEngine.Quaternion.identity, linesHolder);
             lines.Add(newLine);
             curLineIndex++;
         }
@@ -61,35 +74,48 @@ public class DrawingManager : MonoBehaviour
         if (Input.GetMouseButtonUp(0))
         {
             isDrawing = false;
-            //refine the drawing with FFT
-            List<UnityEngine.Vector2> points = new List<UnityEngine.Vector2>();
+
+            /*
             //refine the points with RDP
+            List<UnityEngine.Vector2> pointsPos = new List<UnityEngine.Vector2>();
             List<int> refinedPointsIndexes = new List<int>();
-            RDP(userInput, RDPThreshold, 0, userInput.Count - 1, ref refinedPointsIndexes);
+            pointsPos = userInput.Select(x => x.position).ToList();
+            
+            RDP(pointsPos, RDPThreshold, 0, userInput.Count - 1, ref refinedPointsIndexes);
             refinedPointsIndexes = refinedPointsIndexes.Distinct().ToList();
             refinedPointsIndexes.Sort();
+            List<LinePoint> refinedPoints = new List<LinePoint>();
             for(int i = 0; i < refinedPointsIndexes.Count;i++) //get the refined points
             {
-                points.Add(userInput[refinedPointsIndexes[i]]);
+                refinedPoints.Add(userInput[refinedPointsIndexes[i]]);
+
             }
-            Debug.Log($"Total {userInput.Count} Input points, {points.Count} RDP points");
-            Complex[] fftData = ApplyFFT(points);
+            Debug.Log($"Total {userInput.Count} Input points, {pointsPos.Count} RDP points");
+            List<LinePoint> newPoints = refinedPoints;
+            */
+
+            List<LinePoint> newPoints = new List<LinePoint>();
+            userInput.ForEach(input => newPoints.Add(input));
+
 
             //for (int j = 0; j < points.Count; j++)
             //{
             //    Debug.Log($"Point {j}: {points[j]} | FFTResult: {fftData[j]}");
             //}
 
-            Complex[] refinedFFTData = FFTDataRefine(fftData);
-            List<UnityEngine.Vector2> newPoints = GeneratePointsFromData(refinedFFTData, 1);
+            //Fourier transform for potential optimization
+            //Complex[] fftData = ApplyFFT(points);
+            //Complex[] refinedFFTData = FFTDataRefine(fftData);
+            //List<UnityEngine.Vector2> newPoints = GeneratePointsFromData(refinedFFTData, 1);
 
             //Debug part
+
             pointsDebug = newPoints;
 
-            CustomLineRenderer lineRenderer = lines[curLineIndex].GetComponent<CustomLineRenderer>();
-            lineRenderer.points = newPoints;
-            lineRenderer.debugVertices.Clear();
-            lineRenderer.isDebug = isDebug;
+            LineMeshGenerator lineMeshGenerator = lines[curLineIndex].GetComponent<LineMeshGenerator>();
+            lineMeshGenerator.debugVertices.Clear();
+            lineMeshGenerator.RefreshPoints(newPoints);
+            lineMeshGenerator.isDebug = isDebug;
             //LineRenderer lineRenderer = lines[curLineIndex].GetComponent<LineRenderer>();
             //lineRenderer.positionCount = newPoints.Count;
             //for (int i = 0; i < newPoints.Count; i++)
@@ -108,13 +134,15 @@ public class DrawingManager : MonoBehaviour
             if(drawingSampleTimer > 1f / drawingSampleRate)
             {
                 drawingSampleTimer = 0;
-                UnityEngine.Vector2 mousePos = new UnityEngine.Vector2(Input.mousePosition.x - Screen.width / 2f, Input.mousePosition.y - Screen.height / 2f);
-                if (userInput.Count == 0) userInput.Add(mousePos);
+                //UnityEngine.Vector2 mousePos = new UnityEngine.Vector2(Input.mousePosition.x - Screen.width / 2f, Input.mousePosition.y - Screen.height / 2f);
+                UnityEngine.Vector2 mousePos = linesHolder.worldToLocalMatrix * Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                if (userInput.Count == 0) userInput.Add(new LinePoint(mousePos,curTotalDrawingTime));
                 else 
                 {
-                    float prevDis = UnityEngine.Vector2.Distance(userInput.Last(), mousePos);
-                    if (prevDis > inputDistanceThreshold) userInput.Add(mousePos);
-                    else userInput[userInput.Count - 1] = mousePos;
+                    float prevDis = UnityEngine.Vector2.Distance(userInput.Last().position, mousePos);
+                    Debug.Log($"Distance: {prevDis}");
+                    if (prevDis > inputDistanceThreshold) userInput.Add(new LinePoint(mousePos, curTotalDrawingTime));
+                    else userInput[userInput.Count - 1] = new LinePoint(mousePos, curTotalDrawingTime);
                 }
                 
             }
@@ -124,7 +152,11 @@ public class DrawingManager : MonoBehaviour
         {
             if(prevPointCount != userInput.Count)
             {
-                List<UnityEngine.Vector2> newPoints = userInput.ToList();
+                List<LinePoint> newPoints = new List<LinePoint>();
+                foreach (var input in userInput)
+                {
+                    newPoints.Add(input);
+                }
                 //LineRenderer lineRenderer = lines[curLineIndex].GetComponent<LineRenderer>();
                 //lineRenderer.positionCount = newPoints.Count;
                 //for (int i = 0; i < newPoints.Count; i++)
@@ -135,9 +167,10 @@ public class DrawingManager : MonoBehaviour
                 //Debug part
                 pointsDebug = newPoints;
 
-                CustomLineRenderer lineRenderer = lines[curLineIndex].GetComponent<CustomLineRenderer>();
-                lineRenderer.points = newPoints;
-                lineRenderer.isDebug = isDebug;
+                LineMeshGenerator lineMeshGenerator = lines[curLineIndex].GetComponent<LineMeshGenerator>();
+                lineMeshGenerator.RefreshPoints(newPoints);
+                lineMeshGenerator.isDebug = isDebug;
+
                 prevPointCount = userInput.Count;
             }
         }
@@ -276,4 +309,9 @@ public class DrawingManager : MonoBehaviour
         }
     }
 
+
+    public static float remap(float val, float in1, float in2, float out1, float out2)
+    {
+        return out1 + (val - in1) * (out2 - out1) / (in2 - in1);
+    }
 }

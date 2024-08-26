@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.UI;
 
 public class CustomLineRenderer : Graphic
 {
-    public List<Vector2> points = new List<Vector2>();
+    public List<LinePoint> points = new List<LinePoint>();
     public float width = 0.2f;
     public Color color = Color.black;
 
@@ -24,13 +25,13 @@ public class CustomLineRenderer : Graphic
         {
             for (int i = 0; i < points.Count; i++)
             {
-                Vector2 point = points[i];
+                Vector2 point = points[i].position;
                 Gizmos.color = Color.red;
                 Vector2 debugPoint = point;
                 Gizmos.DrawWireSphere(debugPoint, 3);
                 if (i != points.Count - 1)
                 {
-                    Vector2 nextPoint = points[i + 1];
+                    Vector2 nextPoint = points[i + 1].position;
                     Gizmos.color = Color.green;
                     Gizmos.DrawLine(debugPoint, nextPoint);
                 }
@@ -52,21 +53,25 @@ public class CustomLineRenderer : Graphic
 
     protected override void OnPopulateMesh(VertexHelper vh)
     {
+        Profiler.BeginSample("Line Mesh Populate");
         vh.Clear();
         int curVertexIndex = 0;
 
         if (points.Count < 2)
+        {
+            Profiler.EndSample();
             return;
+        }
 
         for (int i = 0; i < points.Count; i++)
         {
-            Vector2 point = points[i];
+            Vector2 pointPos = points[i].position;
             Vector2 normal = Vector2.zero;
             Vector2 dir = Vector2.zero;
             if (i != points.Count - 1)
             {
-                Vector2 nextPoint = points[i + 1];
-                dir = nextPoint - point;
+                Vector2 nextPointPos = points[i + 1].position;
+                dir = nextPointPos - pointPos;
 
                 //debnug draw line
                 //Vector2 debugPoint = point + new Vector2(Screen.width / 2, Screen.height / 2);
@@ -78,7 +83,7 @@ public class CustomLineRenderer : Graphic
                 if (i > 0 && i < points.Count - 1)
                 {
                     //check if this point is the start of a corner
-                    Vector2 prevDir = point - points[i-1];
+                    Vector2 prevDir = pointPos - points[i-1].position;
                     float angle = Vector3.Angle(prevDir,dir);
                     Vector3 t = Vector3.Cross(prevDir, dir);
                     angle *= Mathf.Sign(-t.z);
@@ -87,29 +92,29 @@ public class CustomLineRenderer : Graphic
                     if (Mathf.Abs(angle) > cornerAngleThreshold)
                     {
                         Vector2 prevNormal = new Vector2(-prevDir.y, prevDir.x).normalized;
-                        DrawVerticesForCornerOptimized(point, prevNormal, angle, vh, width, ref curVertexIndex);
+                        DrawVerticesForCornerOptimized(pointPos, prevNormal, angle, vh, width, ref curVertexIndex);
                         continue;
                     }
-                    else DrawVerticesForPoint(point, normal, vh, width, ref curVertexIndex);
+                    else DrawVerticesForPoint(pointPos, normal, vh, width, ref curVertexIndex);
                 }
-                else DrawVerticesForPoint(point, normal, vh, width, ref curVertexIndex);
+                else DrawVerticesForPoint(pointPos, normal, vh, width, ref curVertexIndex);
                 
             }
             else 
             {
-                dir = point - points[i - 1];
+                dir = pointPos - points[i - 1].position;
                 normal = new Vector2(-dir.y, dir.x).normalized;
 
-                Vector2 debugPoint = point + new Vector2(Screen.width / 2, Screen.height / 2);
+                //Vector2 debugPoint = pointPos + new Vector2(Screen.width / 2, Screen.height / 2);
                 //Debug.DrawLine(debugPoint, debugPoint + dir.normalized * 3f, Color.cyan, 1f);
                 //Debug.DrawLine(debugPoint, debugPoint + normal.normalized * 3f, Color.magenta, 1f);
                 //Debug.Log($"CurDir: {dir}, Normal: {normal}");
 
                 //Debug.Log($"CurTriangleIndex: {curTriangleIndex}, Total vertices: {vh.currentVertCount}");
-                DrawVerticesForPoint(point, normal, vh, width, ref curVertexIndex);
+                DrawVerticesForPoint(pointPos, normal, vh, width, ref curVertexIndex);
                 //Debug.Log($"CurTriangleIndex: {curTriangleIndex}, Total vertices: {vh.currentVertCount}");
                 FillEndTriangles(vh, ref curVertexIndex);
-                Debug.Log($"Total vertices: {vh.currentVertCount}");
+                //Debug.Log($"Total vertices: {vh.currentVertCount}");
             }
             
             
@@ -123,7 +128,7 @@ public class CustomLineRenderer : Graphic
         //    //vh.AddTriangle(index + 2, index + 3, index + 5);
         //    //vh.AddTriangle(index + 5, index + 4, index + 3);
         //}
-
+        Profiler.EndSample();
     }
 
     void DrawVerticesForCorner(Vector2 curPoint, Vector2 normal,float angle, VertexHelper vh, float thickness, ref int curVertecIndex)

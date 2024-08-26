@@ -73,3 +73,5 @@ crashlytics-build.properties
 /Drawing/Library
 Drawing/obj/Debug/Assembly-CSharp.csproj.AssemblyReference.cache
 /Drawing/obj/Debug
+/Drawing/Logs
+/Drawing/UserSettings
