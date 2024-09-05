@@ -42,6 +42,9 @@ public class LineMeshGenerator : MonoBehaviour
     [Header("Tail Settings")]
     [SerializeField] private float endTailVelocityThreshold = 1.5f;
 
+    [Header("Collider Settings")]
+    [SerializeField] private MeshCollider meshCollider;
+
     [Header("Debug Settings")]
     public bool isDebug = false;
     public HashSet<Vector2> debugVertices = new HashSet<Vector2>();
@@ -257,6 +260,7 @@ public class LineMeshGenerator : MonoBehaviour
         mesh.triangles = trianglesList.ToArray();
         mesh.colors32 = vertexColors.ToArray();
         meshFilter.mesh = mesh;
+        meshCollider.sharedMesh = mesh;
 
         //End the profiling
         Profiler.EndSample();

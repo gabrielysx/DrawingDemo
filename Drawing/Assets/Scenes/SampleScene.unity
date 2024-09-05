@@ -161,6 +161,7 @@ MonoBehaviour:
   linePrefab: {fileID: 5232577579512415852, guid: 5922b7f16b9f9a548b52a880c466dde4, type: 3}
   drawingSampleRate: 100
   inputDistanceThreshold: 0.005
+  gridManager: {fileID: 815492675}
   isDebug: 0
   pointsDebug: []
 --- !u!4 &96447483
@@ -383,6 +384,8 @@ GameObject:
   m_Component:
   - component: {fileID: 815492673}
   - component: {fileID: 815492674}
+  - component: {fileID: 815492676}
+  - component: {fileID: 815492675}
   m_Layer: 0
   m_Name: BG
   m_TagString: Untagged
@@ -457,6 +460,67 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &815492675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 815492672}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb699d42d7303864682a37776f344545, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  horizontalResolution: 256
+  verticalResolution: 144
+  canvasBoundCollider: {fileID: 815492676}
+  isDebug: 0
+--- !u!61 &815492676
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 815492672}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
 --- !u!1 &1120262549
 GameObject:
   m_ObjectHideFlags: 0
@@ -667,6 +731,7 @@ MonoBehaviour:
   linePrefab: {fileID: 5232577579512415852, guid: 5922b7f16b9f9a548b52a880c466dde4, type: 3}
   drawingSampleRate: 75
   inputDistanceThreshold: 0.01
+  gridManager: {fileID: 0}
   isDebug: 0
   pointsDebug: []
 --- !u!114 &1873063496

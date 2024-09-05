@@ -33,6 +33,9 @@ public class DrawingManager : MonoBehaviour
     private List<LinePoint> userInput = new List<LinePoint>();
     private bool isDrawing = false;
 
+    [Header("Grid Settings")]
+    [SerializeField] private GridManager gridManager;
+
     [Header("Debug Settings")]
     [SerializeField] bool isDebug = false;
     [SerializeField] private List<LinePoint> pointsDebug = new List<LinePoint>();
@@ -55,6 +58,11 @@ public class DrawingManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void Start()
+    {
+        if(gridManager != null) gridManager.GetMousePosition = GetMousePos;
     }
 
     private void Update()
@@ -135,6 +143,9 @@ public class DrawingManager : MonoBehaviour
             }
             */
 
+            //Refresh the Grid Info
+            gridManager.RefreshGrid();
+
             //Debug part
             pointsDebug = newPoints;
 
@@ -157,7 +168,7 @@ public class DrawingManager : MonoBehaviour
                 {
                     //Ignore the input point if it is too close to the last point in the list
                     float prevDis = UnityEngine.Vector2.Distance(userInput.Last().position, mousePos);
-                    Debug.Log($"Distance: {prevDis}");
+                    //Debug.Log($"Distance: {prevDis}");
                     if (prevDis > inputDistanceThreshold) userInput.Add(new LinePoint(mousePos, curTotalDrawingTime));
                     else userInput[userInput.Count - 1] = new LinePoint(mousePos, curTotalDrawingTime);
                 }
@@ -354,6 +365,11 @@ public class DrawingManager : MonoBehaviour
                 return;
             }
         }
+    }
+
+    public UnityEngine.Vector2 GetMousePos()
+    {
+        return linesHolder.worldToLocalMatrix * Camera.main.ScreenToWorldPoint(Input.mousePosition);
     }
 
     //This method is used to remap a value from one range to another
